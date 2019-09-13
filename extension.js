@@ -2,11 +2,20 @@ const vscode = require('vscode');
 
 /**
  * @param {vscode.ExtensionContext} context
- */
+ **/
+
 
 function activate(context) {
+	function getFileNameFromPath(path) {
+		return path.split("/").pop().replace(/\.[^.]*$/, '');
+	}
+
 	let disposable = vscode.commands.registerCommand('hrod.open', function () {
 		const path = vscode.workspace.rootPath;
+		const filepath = vscode.window.activeTextEditor.document.fileName;
+		const fileName = getFileNameFromPath(filepath);
+
+		console.log(fileName);
 
 		vscode.env.clipboard.readText().then((slideId) => {
 			if (!slideId) return;

@@ -10,14 +10,14 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:extension.open"
+		"onCommand:hrod.open"
 	],
 	"main": "./extension.js",
 	"contributes": {
 		"commands": [
 			{
 				"command": "hrod.open",
-				"title": "Open files for develop slide"
+				"title": "Open cobalt files"
 			}
 		]
 	},
