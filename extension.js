@@ -1,12 +1,15 @@
 const vscode = require('vscode');
 const fs = require('fs');
+const path = require('path');
+
 const ignoreWorkspace = [
 	'app/data/kpi/*',
 	'app/media/**',
 ];
 
 function getFileNameFromPath(filePath) {
-	return filePath.split("/").pop().replace(/\.[^.]*$/, '');
+	const fileName = path.parse(filePath)
+	return fileName.name;
 }
 
 function parseJsData(filename) {
@@ -17,13 +20,14 @@ function parseJsData(filename) {
 }
 
 function getPathToPresentation(filePath) {
-	return filePath.split("/projects/").pop();
+	const folderName = (process.platform === 'win32') ? "html" : "projects";
+	return filePath.split(`${path.sep}${folderName}${path.sep}`).pop();
 }
 
-function openFiles(path, slideId) {
+function openFiles(rootPath, slideId) {
 	vscode.workspace.findFiles(
-		new vscode.RelativePattern(path, `{app/**/${slideId}.*}`),
-		new vscode.RelativePattern(path, `{${ignoreWorkspace.join(',')}}`),
+		new vscode.RelativePattern(rootPath, `{app/**/${slideId}.*}`),
+		new vscode.RelativePattern(rootPath, `{${ignoreWorkspace.join(',')}}`),
 	)
 		.then((TextDocuments) => {
 			TextDocuments.forEach(document => {
@@ -41,9 +45,11 @@ function getChapter(chapters, slide) {
 			return chapter;
 		}
 	}
+	vscode.window.showInformationMessage('This slide does not exist in any chapters');
+	return undefined;
 }
-function openUrl(path, chapter, slide) {
-	vscode.env.openExternal(vscode.Uri.parse(`http://localhost/${path}/#/${chapter}/${slide}`));
+function openUrl(presentationPath, chapter, slide) {
+	vscode.env.openExternal(vscode.Uri.parse(`http://localhost/${presentationPath}/#/${chapter}/${slide}`));
 }
 
 /**
@@ -53,17 +59,19 @@ function openUrl(path, chapter, slide) {
 function activate(context) {
 
 	let disposable = vscode.commands.registerCommand('hrod.open', function () {
-		const path = vscode.workspace.rootPath;
-		const presentationPath = getPathToPresentation(path);
-		const structure = parseJsData(`${path}/structure.json`);
+		const rootPath = vscode.workspace.rootPath;
+		const presentationPath = getPathToPresentation(rootPath);
+		const structure = parseJsData(`${rootPath}/structure.json`);
 
 		vscode.env.clipboard.readText()
 			.then((slideId) => {
 				if (Object.keys(structure.slides).some(item => item === slideId)) {
 					const chapter = getChapter(structure.chapters, slideId);
 
-					openFiles(path, slideId);
-					openUrl(presentationPath, chapter, slideId);
+					openFiles(rootPath, slideId);
+					if (chapter) {
+						openUrl(presentationPath, chapter, slideId);
+					}
 				} else {
 					vscode.window.showInformationMessage('Сlipboard is empty!');
 
@@ -71,8 +79,10 @@ function activate(context) {
 					const fileName = getFileNameFromPath(filePath);
 					const chapter = getChapter(structure.chapters, fileName);
 
-					openFiles(path, fileName);
-					openUrl(presentationPath, chapter, fileName);
+					openFiles(rootPath, fileName);
+					if (chapter) {
+						openUrl(presentationPath, chapter, fileName);
+					}
 				}
 
 			});
