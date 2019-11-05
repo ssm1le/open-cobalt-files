@@ -1,47 +1,39 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const open = require('./open-files.js');
-
+const utils = require('./utils');
 const cheerio = require('cheerio');
 const path = require('path');
+
 /**
  * @param {vscode.ExtensionContext} context
  */
 
 function activate(context) {
 
-	function getModelObj(modelId) {
-		// const json = `${path}/app/data/models/${slideName}.json`;
+	function getCoTextModel(modelId) {
 		return {
 			[modelId]: {
 				html: `t.${modelId}`
 			}
 		};
 	}
+
 	function getModelForTag(element) {
-		let name = element.name;
-		let id = element.attribs.id;
+		const name = element.name;
+		const id = element.attribs.id;
 		let model = element.attribs.model;
 
-
-
-		if (id && name == "co-text") {
+		if (model && name == "co-text") {
 			console.log("done");
-
-			return getModelObj(id);
+			model = model.replace(/(m\.common\.)|(m\.)/g, "");
+			return getCoTextModel(model);
 		}
 		return {};
 
 	}
-	function getTagsOnSlides(document) {
-		let file = fs.readFileSync(document.fileName, 'utf8');
-		const $ = cheerio.load(file)
-		let tags = [];
-		$('article').find('*').each((i, elem) => {
-			tags.push(elem)
-		});
-		return tags;
-	}
+
+
 
 	const subscriptions = [
 		vscode.commands.registerCommand("hrod.open", open.openCobaltFiles),
@@ -54,16 +46,17 @@ function activate(context) {
 			if (activeDocument.languageId !== 'html') {
 				vscode.window.showInformationMessage('Open the file with the HTML extension');
 			} else {
-				const tags = getTagsOnSlides(activeDocument);
+				const tags = utils.getTagsOnSlides(activeDocument);
 				let tempModelObj = {};
-				tags.forEach(elem => {
-					tempModelObj = Object.assign(tempModelObj, getModelForTag(elem))
-				});
-				let jsonModel = fs.readFileSync(`${rootPath}/app/data/models/${fileName}.json`, 'utf8');
-				jsonModel = JSON.parse(jsonModel)
-				jsonModel = Object.assign(jsonModel, tempModelObj);
-				
-				fs.writeFileSync(`${rootPath}/app/data/models/${fileName}.json`, JSON.stringify(jsonModel));
+				tags.filter(elem =>  elem.attribs.model && !elem.attribs.model.startsWith('m.common') && elem.name.startsWith('co-'))
+					.forEach(elem => {
+						tempModelObj = Object.assign(tempModelObj, getModelForTag(elem))
+					});
+
+				let fileModel = fs.readFileSync(`${rootPath}/app/data/models/${fileName}.json`, 'utf8');
+				let resultObj = utils.glueObjectWithJSON(fileModel, tempModelObj);
+
+				fs.writeFileSync(`${rootPath}/app/data/models/${fileName}.json`, resultObj);
 			}
 		}),
 		vscode.commands.registerCommand("hrod.fix", () => { })
