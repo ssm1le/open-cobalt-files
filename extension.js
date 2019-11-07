@@ -4,6 +4,7 @@ const open = require('./open-files.js');
 const utils = require('./utils');
 const cheerio = require('cheerio');
 const path = require('path');
+const R = require('ramda');
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -24,12 +25,15 @@ function activate(context) {
 		const id = element.attribs.id;
 		let model = element.attribs.model;
 
-		if (model && name == "co-text") {
-			console.log("done");
-			model = model.replace(/(m\.common\.)|(m\.)/g, "");
-			return getCoTextModel(model);
+		switch (element.name) {
+			case "co-text":
+				model = model.replace(/(m\.common\.)|(m\.)/g, "");
+				return getCoTextModel(model);
+
+			default:
+				return {};
 		}
-		return {};
+
 
 	}
 
@@ -48,11 +52,8 @@ function activate(context) {
 			} else {
 				const tags = utils.getTagsOnSlides(activeDocument);
 				let tempModelObj = {};
-				tags.filter(elem =>  elem.attribs.model && !elem.attribs.model.startsWith('m.common') && elem.name.startsWith('co-'))
-					.forEach(elem => {
-						tempModelObj = Object.assign(tempModelObj, getModelForTag(elem))
-					});
-
+				let mergeObjects = elem => tempModelObj = R.mergeDeepRight(tempModelObj, getModelForTag(elem));;
+				R.forEach(mergeObjects, tags);
 				let fileModel = fs.readFileSync(`${rootPath}/app/data/models/${fileName}.json`, 'utf8');
 				let resultObj = utils.glueObjectWithJSON(fileModel, tempModelObj);
 
