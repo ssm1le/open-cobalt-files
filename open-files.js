@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
+const utils = require('./utils');
 
 
 function getWorkspace(slideId, settings) {
@@ -17,12 +18,7 @@ function getFileNameFromPath(filePath) {
 	return fileName.name;
 }
 
-function parseJsData(filename) {
-	let json = fs.readFileSync(filename, 'utf8')
-		.replace(/\s*\/\/.+/g, '')
-		.replace(/,(\s*\})/g, '}')
-	return JSON.parse(json);
-}
+
 
 function getPathToPresentation(filePath) {
 	const folderName = (process.platform === 'win32') ? "html" : "projects";
@@ -58,17 +54,16 @@ function openUrl(presentationPath, chapter, slide) {
 
 
 function openCobaltFiles() {
-	const rootPath = vscode.workspace.rootPath;
-	const presentationPath = getPathToPresentation(rootPath);
-	const structure = parseJsData(`${rootPath}/structure.json`);
-	const settings = parseJsData(`${rootPath}/app/settings/app.json`);
+	
+	const presentationPath = getPathToPresentation(utils.rootPath);
+	const structure = utils.parseJsData(`${utils.rootPath}/structure.json`);
 
 	vscode.env.clipboard.readText()
 		.then((slideId) => {
 			if (Object.keys(structure.slides).some(item => item === slideId)) {
 				const chapter = getChapter(structure.chapters, slideId);
 
-				openFiles(rootPath, slideId, settings);
+				openFiles(utils.rootPath, slideId, utils.settings);
 				if (chapter) {
 					openUrl(presentationPath, chapter, slideId);
 				}
@@ -79,7 +74,7 @@ function openCobaltFiles() {
 				const fileName = getFileNameFromPath(filePath);
 				const chapter = getChapter(structure.chapters, fileName);
 
-				openFiles(rootPath, fileName, settings);
+				openFiles(utils.rootPath, fileName, utils.settings);
 				if (chapter) {
 					openUrl(presentationPath, chapter, fileName);
 				}
@@ -91,7 +86,6 @@ module.exports = {
 	openCobaltFiles,
 	getWorkspace,
 	getFileNameFromPath,
-	parseJsData,
 	getPathToPresentation,
 	openFiles,
 	getChapter,

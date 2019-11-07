@@ -19,7 +19,14 @@ function activate(context) {
 			}
 		};
 	}
-
+	function getCoTextI18n(modelId) {
+		return {
+			[modelId]: ""
+		};
+	}
+	function getCoImageModel(modelId) {
+		
+	}
 	function getModelForTag(element) {
 		const name = element.name;
 		const id = element.attribs.id;
@@ -28,10 +35,21 @@ function activate(context) {
 		switch (element.name) {
 			case "co-text":
 				model = model.replace(/(m\.common\.)|(m\.)/g, "");
-				return getCoTextModel(model);
+
+				const coTextModel = getCoTextModel(model);
+				const coTextI18n = getCoTextI18n(model);
+
+				return [coTextModel, coTextI18n];
+
+			case "co-image":
+				model = model.replace(/(m\.common\.)|(m\.)/g, "");
+
+				const coImageModel = getCoImageModel(model);
+
+				return [coImageModel, {}];
 
 			default:
-				return {};
+				return [Object, Object];
 		}
 
 
@@ -43,7 +61,6 @@ function activate(context) {
 		vscode.commands.registerCommand("hrod.open", open.openCobaltFiles),
 		vscode.commands.registerCommand("hrod.model", () => {
 
-			const rootPath = vscode.workspace.rootPath;
 			const activeDocument = vscode.window.activeTextEditor.document;
 			const fileName = open.getFileNameFromPath(activeDocument.fileName);
 
@@ -52,12 +69,22 @@ function activate(context) {
 			} else {
 				const tags = utils.getTagsOnSlides(activeDocument);
 				let tempModelObj = {};
-				let mergeObjects = elem => tempModelObj = R.mergeDeepRight(tempModelObj, getModelForTag(elem));;
-				R.forEach(mergeObjects, tags);
-				let fileModel = fs.readFileSync(`${rootPath}/app/data/models/${fileName}.json`, 'utf8');
-				let resultObj = utils.glueObjectWithJSON(fileModel, tempModelObj);
+				let tempI18nObj = {};
+				// NEED REFACTORIN
+				let mergeModelObjects = elem => tempModelObj = R.mergeDeepRight(tempModelObj, getModelForTag(elem)[0]);
+				let mergeI18nObjects = elem => tempI18nObj = R.mergeDeepRight(tempI18nObj, getModelForTag(elem)[1]);
 
-				fs.writeFileSync(`${rootPath}/app/data/models/${fileName}.json`, resultObj);
+				R.forEach(mergeModelObjects, tags);
+				R.forEach(mergeI18nObjects, tags);
+
+				let fileModel = fs.readFileSync(`${utils.rootPath}/app/data/models/${fileName}.json`, 'utf8');
+				let fileI18n = fs.readFileSync(`${utils.rootPath}/app/data/models/${fileName}.json`, 'utf8');
+
+				let resultModelObj = utils.glueObjectWithJSON(fileModel, tempModelObj);
+				let resultI18nObj = utils.glueObjectWithJSON(fileI18n, tempI18nObj);
+
+				fs.writeFileSync(`${utils.rootPath}/app/data/models/${fileName}.json`, resultModelObj);
+				fs.writeFileSync(`${utils.rootPath}/app/i18n/${utils.settings.lang}/${fileName}.json`, resultI18nObj);
 			}
 		}),
 		vscode.commands.registerCommand("hrod.fix", () => { })
