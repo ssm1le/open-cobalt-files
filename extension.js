@@ -32,7 +32,7 @@ function activate(context) {
 		const id = element.attribs.id;
 		let model = element.attribs.model;
 
-		switch (element.name) {
+		switch (name) {
 			case "co-text":
 				model = model.replace(/(m\.common\.)|(m\.)/g, "");
 
@@ -70,7 +70,7 @@ function activate(context) {
 				const tags = utils.getTagsOnSlides(activeDocument);
 				let tempModelObj = {};
 				let tempI18nObj = {};
-				// NEED REFACTORIN
+				// NEED REFACTORING
 				let mergeModelObjects = elem => tempModelObj = R.mergeDeepRight(tempModelObj, getModelForTag(elem)[0]);
 				let mergeI18nObjects = elem => tempI18nObj = R.mergeDeepRight(tempI18nObj, getModelForTag(elem)[1]);
 
